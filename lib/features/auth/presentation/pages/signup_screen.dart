@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/singup_screen.dart';
-import 'login_screen.dart';
-import 'singup_screen.dart';
+import 'package:go_router/go_router.dart';
 
-class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({super.key});
+class SignUpScreen extends StatelessWidget {
+  const SignUpScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -65,21 +63,27 @@ class WelcomeScreen extends StatelessWidget {
                     const SizedBox(height: 12),
 
                     Text(
-                      'Hello',
+                      'Registro',
                       style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(fontSize: 36, letterSpacing: -0.5),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-
-                    Text(
-                      'Welcome to Delivery',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyMedium?.copyWith(height: 1.3),
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 28,
+                            color: Colors.black,
+                          ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 40),
+
+                    const _InputField(label: 'Nombre'),
+                    const SizedBox(height: 16),
+                    const _InputField(label: 'Apellido'),
+                    const SizedBox(height: 16),
+                    const _InputField(label: 'Teléfono'),
+                    const SizedBox(height: 16),
+                    const _InputField(label: 'Dirección'),
+                    const SizedBox(height: 16),
+                    const _InputField(label: 'Correo'),
+                    const SizedBox(height: 32),
 
                     SizedBox(
                       width: double.infinity,
@@ -93,57 +97,44 @@ class WelcomeScreen extends StatelessWidget {
                           foregroundColor: cs.onPrimary,
                         ),
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const LoginScreen(),
-                            ),
-                          );
+                          context.go('/signup/step2');
                         },
-
                         child: const Text(
-                          'Login',
+                          'Next',
                           style: TextStyle(fontSize: 18),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 14),
-
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          side: BorderSide(
-                            color: cs.primary.withOpacity(0.35),
-                            width: 2,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(22),
-                          ),
-                          foregroundColor: cs.primary.withOpacity(0.75),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const SignUpScreen(),
-                            ),
-                          );
-                        },
-
-                        child: const Text(
-                          'Sign Up',
-                          style: TextStyle(fontSize: 18),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InputField extends StatelessWidget {
+  final String label;
+
+  const _InputField({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.grey),
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Color(0xFFD7B3AF), width: 2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.grey.withOpacity(0.4)),
+          borderRadius: BorderRadius.circular(16),
         ),
       ),
     );

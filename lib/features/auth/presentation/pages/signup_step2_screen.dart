@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class SignUpStep2Screen extends StatelessWidget {
   const SignUpStep2Screen({super.key});
@@ -91,12 +91,7 @@ class SignUpStep2Screen extends StatelessWidget {
                           foregroundColor: cs.onPrimary,
                         ),
                         onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const HomeScreen(),
-                            ),
-                          );
+                          context.go('/home');
                         },
                         child: const Text(
                           'Sign Up',

@@ -32,14 +32,13 @@ class ProfileScreen extends StatelessWidget {
           children: [
             const SizedBox(height: 24),
 
-            // ── Imagen de perfil
             Stack(
               alignment: Alignment.bottomRight,
               children: [
                 const CircleAvatar(
                   radius: 60,
                   backgroundImage: NetworkImage(
-                    'https://cdn-icons-png.flaticon.com/512/706/706830.png', 
+                    'https://cdn-icons-png.flaticon.com/512/706/706830.png',
                   ),
                   backgroundColor: Colors.white,
                 ),
@@ -95,7 +94,6 @@ class ProfileScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Título
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -157,9 +155,7 @@ class ProfileScreen extends StatelessWidget {
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        onPressed: () {
-                          // TODO: guardar cambios
-                        },
+                        onPressed: () {},
                         child: const Text(
                           'Guardar cambios',
                           style: TextStyle(
@@ -182,9 +178,7 @@ class ProfileScreen extends StatelessWidget {
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        onPressed: () {
-                          // TODO: eliminar cuenta
-                        },
+                        onPressed: () {},
                         child: const Text(
                           'Eliminar cuenta',
                           style: TextStyle(
@@ -208,7 +202,7 @@ class ProfileScreen extends StatelessWidget {
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white70,
         showUnselectedLabels: true,
-        currentIndex: 2, // marcar "Mi Perfil"
+        currentIndex: 2,
         onTap: (index) {
           if (index == 0) Navigator.pop(context);
         },
