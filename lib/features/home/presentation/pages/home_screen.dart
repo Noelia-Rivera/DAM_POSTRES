@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/welcome_screen.dart';
-import 'profile_screen.dart';
-import 'welcome_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -55,12 +53,12 @@ class HomeScreen extends StatelessWidget {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: [
+                  children: const [
                     _CategoryChip(label: 'Todos', selected: true),
                     _CategoryChip(label: 'Categoria 1'),
                     _CategoryChip(label: 'Categoria 2'),
                     _CategoryChip(label: 'Categoria 3'),
-                    const SizedBox(width: 10),
+                    SizedBox(width: 10),
                   ],
                 ),
               ),
@@ -110,13 +108,13 @@ class HomeScreen extends StatelessWidget {
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white70,
         showUnselectedLabels: true,
-        currentIndex: 0, // índice actual (Home)
+        currentIndex: 0,
         onTap: (index) {
-          if (index == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfileScreen()),
-            );
+          if (index == 1) {
+            // Navigate to Pedidos screen
+            context.go('/pedidos');
+          } else if (index == 2) {
+            context.go('/profile');
           }
         },
         items: const [
@@ -197,15 +195,10 @@ class _AppDrawer extends StatelessWidget {
 
               const Spacer(),
 
-              // ──  sesión
               InkWell(
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const WelcomeScreen()),
-                  );
-                  // TODO: agregar acción de cerrar sesión
+                  context.go('/');
                 },
                 child: Row(
                   children: const [

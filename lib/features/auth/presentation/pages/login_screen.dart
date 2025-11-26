@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'signup_step2_screen.dart';
+import 'package:go_router/go_router.dart';
 
-
-class SignUpScreen extends StatelessWidget {
-  const SignUpScreen({super.key});
+class LoginScreen extends StatelessWidget {
+  const LoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +63,7 @@ class SignUpScreen extends StatelessWidget {
                     const SizedBox(height: 12),
 
                     Text(
-                      'Registro',
+                      'Iniciar Sesión',
                       style: Theme.of(context).textTheme.headlineMedium
                           ?.copyWith(
                             fontWeight: FontWeight.bold,
@@ -75,16 +74,63 @@ class SignUpScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 40),
 
-                    const _InputField(label: 'Nombre'),
-                    const SizedBox(height: 16),
-                    const _InputField(label: 'Apellido'),
-                    const SizedBox(height: 16),
-                    const _InputField(label: 'Teléfono'),
-                    const SizedBox(height: 16),
-                    const _InputField(label: 'Dirección'),
-                    const SizedBox(height: 16),
-                    const _InputField(label: 'Correo'),
-                    const SizedBox(height: 32),
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: 'Usuario',
+                        labelStyle: const TextStyle(color: Colors.grey),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: cs.primary.withOpacity(0.6),
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.withOpacity(0.4),
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    TextField(
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: 'Contraseña',
+                        labelStyle: const TextStyle(color: Colors.grey),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: cs.primary.withOpacity(0.6),
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey.withOpacity(0.4),
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: () {},
+                        child: Text(
+                          '¿Olvidaste tu contraseña?',
+                          style: TextStyle(
+                            color: cs.primary.withOpacity(0.7),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
 
                     SizedBox(
                       width: double.infinity,
@@ -98,15 +144,10 @@ class SignUpScreen extends StatelessWidget {
                           foregroundColor: cs.onPrimary,
                         ),
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const SignUpStep2Screen(),
-                            ),
-                          );
+                          context.go('/home');
                         },
                         child: const Text(
-                          'Next',
+                          'Sign In',
                           style: TextStyle(fontSize: 18),
                         ),
                       ),
@@ -117,30 +158,6 @@ class SignUpScreen extends StatelessWidget {
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _InputField extends StatelessWidget {
-  final String label;
-
-  const _InputField({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.grey),
-        focusedBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Color(0xFFD7B3AF), width: 2),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.grey.withOpacity(0.4)),
-          borderRadius: BorderRadius.circular(16),
         ),
       ),
     );
