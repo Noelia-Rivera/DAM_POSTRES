@@ -110,7 +110,12 @@ class HomeScreen extends StatelessWidget {
         showUnselectedLabels: true,
         currentIndex: 0,
         onTap: (index) {
-          if (index == 2) context.go('/profile');
+          if (index == 1) {
+            // Navigate to Pedidos screen
+            context.go('/pedidos');
+          } else if (index == 2) {
+            context.go('/profile');
+          }
         },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home Page'),
