@@ -13,6 +13,11 @@ class ProductoRepositoryImpl implements ProductoRepository {
   }
 
   @override
+  Future<Producto> getProductoById(String id) async {
+    return await remoteDataSource.getProductoById(id);
+  }
+
+  @override
   Future<List<Producto>> getProductosByCategoria(String categoria) async {
     final productos = await remoteDataSource.getProductos();
     return productos.where((p) => p.categoria == categoria).toList();
@@ -26,5 +31,10 @@ class ProductoRepositoryImpl implements ProductoRepository {
   @override
   Future<void> updateProducto(Producto producto) async {
     await remoteDataSource.updateProducto(producto);
+  }
+
+  @override
+  Future<void> deleteProducto(String id) async {
+    await remoteDataSource.deleteProducto(id);
   }
 }

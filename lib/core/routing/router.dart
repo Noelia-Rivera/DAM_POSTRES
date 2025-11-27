@@ -14,7 +14,7 @@ import '../../features/pedidos/presentation/pages/pedido_confirmacion_screen.dar
 import '../../features/pedidos/presentation/bloc/pedido_bloc.dart';
 import '../../features/pedidos/domain/usecases/get_pedidos_usecase.dart';
 import '../../features/pedidos/data/repositories/pedido_repository_impl.dart';
-import '../../features/pedidos/data/datasources/pedido_mock_data_source.dart';
+import '../../features/pedidos/data/datasources/pedido_remote_data_source_impl.dart';
 import '../../features/pedidos/domain/entities/pedido.dart';
 import '../../features/admin/presentation/pages/vista_admin.dart';
 import '../../features/admin/presentation/pages/vista_agregar.dart';
@@ -32,7 +32,6 @@ import '../../features/admin/data/repositories/producto_repository_impl.dart';
 import '../../features/admin/data/repositories/categoria_repository_impl.dart';
 import '../../features/admin/data/datasources/producto_remote_data_source.dart';
 import '../../features/admin/data/datasources/categoria_remote_data_source.dart';
-import '../../features/repartidor/presentation/pages/repartidor_dashboard_screen.dart';
 import '../../features/repartidor/presentation/pages/repartidor_home_screen.dart';
 import '../../features/repartidor/presentation/pages/repartidor_pedidos_screen.dart';
 import '../../features/repartidor/presentation/pages/repartidor_pedido_detalle_screen.dart';
@@ -42,7 +41,7 @@ import '../../features/repartidor/domain/usecases/get_pedidos_asignados_usecase.
 import '../../features/repartidor/domain/usecases/actualizar_estado_pedido_usecase.dart';
 import '../../features/repartidor/domain/usecases/gestionar_turno_usecase.dart';
 import '../../features/repartidor/data/repositories/repartidor_repository_impl.dart';
-import '../../features/repartidor/data/datasources/repartidor_mock_data_source.dart';
+import '../../features/repartidor/data/datasources/repartidor_remote_data_source_impl.dart';
 import '../../features/cliente/presentation/pages/cliente_home_screen.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source_impl.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
@@ -61,8 +60,6 @@ final apiClient = ApiClient(authService: authService);
 final router = GoRouter(
   initialLocation: '/',
   redirect: (context, state) {
-    // Redirect síncrono - solo verifica la ruta, no la autenticación
-    // La autenticación se verifica en AuthGuard
     return null;
   },
   routes: [
@@ -115,7 +112,7 @@ final router = GoRouter(
           create: (context) => PedidoBloc(
             getPedidosUseCase: GetPedidosUseCase(
               PedidoRepositoryImpl(
-                remoteDataSource: PedidoMockDataSource(),
+                remoteDataSource: PedidoRemoteDataSourceImpl(apiClient: apiClient),
               ),
             ),
           ),
@@ -252,7 +249,7 @@ final router = GoRouter(
       path: '/repartidor',
       builder: (context, state) {
         final repository = RepartidorRepositoryImpl(
-          remoteDataSource: RepartidorMockDataSource(),
+          remoteDataSource: RepartidorRemoteDataSourceImpl(apiClient: apiClient),
         );
         return AuthGuard(
           requiredRole: 'REPARTIDOR',
@@ -272,7 +269,7 @@ final router = GoRouter(
       path: '/repartidor/pedidos',
       builder: (context, state) {
         final repository = RepartidorRepositoryImpl(
-          remoteDataSource: RepartidorMockDataSource(),
+          remoteDataSource: RepartidorRemoteDataSourceImpl(apiClient: apiClient),
         );
         return AuthGuard(
           requiredRole: 'REPARTIDOR',
@@ -298,7 +295,7 @@ final router = GoRouter(
           );
         }
         final repository = RepartidorRepositoryImpl(
-          remoteDataSource: RepartidorMockDataSource(),
+          remoteDataSource: RepartidorRemoteDataSourceImpl(apiClient: apiClient),
         );
         return AuthGuard(
           requiredRole: 'REPARTIDOR',

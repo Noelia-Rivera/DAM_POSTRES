@@ -4,12 +4,9 @@ import '../../domain/entities/categoria.dart';
 import '../bloc/categoria_bloc.dart';
 
 class CrearCategoriaDialog extends StatefulWidget {
-  final Categoria? categoria;
+  final Categoria? categoria; // null = crear, con valor = editar
 
-  const CrearCategoriaDialog({
-    super.key,
-    this.categoria,
-  });
+  const CrearCategoriaDialog({super.key, this.categoria});
 
   @override
   State<CrearCategoriaDialog> createState() => _CrearCategoriaDialogState();
@@ -17,6 +14,7 @@ class CrearCategoriaDialog extends StatefulWidget {
 
 class _CrearCategoriaDialogState extends State<CrearCategoriaDialog> {
   late TextEditingController _nombreController;
+  bool get isEditing => widget.categoria != null;
 
   @override
   void initState() {
@@ -31,77 +29,58 @@ class _CrearCategoriaDialogState extends State<CrearCategoriaDialog> {
   }
 
   void _guardar() {
-    if (_nombreController.text.isEmpty) {
+    if (_nombreController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor ingresa un nombre')),
       );
       return;
     }
 
-    if (widget.categoria != null) {
+    if (isEditing) {
       final categoriaActualizada = Categoria(
         id: widget.categoria!.id,
-        nombre: _nombreController.text,
+        nombre: _nombreController.text.trim(),
       );
       context.read<CategoriaBloc>().add(UpdateCategoria(categoriaActualizada));
     } else {
-      final nuevaCategoria = Categoria(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        nombre: _nombreController.text,
-      );
+      final nuevaCategoria = Categoria(id: '', nombre: _nombreController.text.trim());
       context.read<CategoriaBloc>().add(CreateCategoria(nuevaCategoria));
     }
-
     Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
-    final isEditing = widget.categoria != null;
-
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
         padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-        ),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               isEditing ? 'Editar Categoría' : 'Nueva Categoría',
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey,
-              ),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
             ),
             const SizedBox(height: 24),
             Row(
               children: [
                 Container(
-                  width: 50,
-                  height: 50,
+                  width: 50, height: 50,
                   decoration: BoxDecoration(
                     color: const Color(0xFFF5E6D3),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
-                    Icons.edit,
-                    color: Colors.black54,
-                  ),
+                  child: const Icon(Icons.category, color: Colors.black54),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextField(
                     controller: _nombreController,
+                    autofocus: true,
                     decoration: InputDecoration(
-                      hintText: 'Nueva Categoría',
-                      suffixIcon: const Icon(Icons.edit, size: 20),
+                      hintText: 'Nombre de la categoría',
                       filled: true,
                       fillColor: Colors.grey.shade100,
                       border: OutlineInputBorder(
@@ -113,100 +92,39 @@ class _CrearCategoriaDialogState extends State<CrearCategoriaDialog> {
                         borderSide: BorderSide(color: Colors.orange.shade200),
                       ),
                     ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5E6D3),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.category,
-                    color: Colors.black54,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: null,
-                    hint: const Text('Categoría'),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.grey.shade100,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.orange.shade200),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.orange.shade200),
-                      ),
-                    ),
-                    items: ['Categoria 1', 'Categoria 2']
-                        .map((cat) => DropdownMenuItem(
-                              value: cat,
-                              child: Text(cat),
-                            ))
-                        .toList(),
-                    onChanged: (value) {},
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: null,
-                    hint: const Text('Editar'),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.grey.shade100,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.orange.shade200),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.orange.shade200),
-                      ),
-                    ),
-                    items: ['Editar', 'Eliminar']
-                        .map((action) => DropdownMenuItem(
-                              value: action,
-                              child: Text(action),
-                            ))
-                        .toList(),
-                    onChanged: (value) {},
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _guardar,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFB8D77E),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 60,
-                  vertical: 14,
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                    ),
+                    child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+                  ),
                 ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _guardar,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFB8D77E),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                    ),
+                    child: Text(
+                      isEditing ? 'Actualizar' : 'Guardar',
+                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ),
-              ),
-              child: const Text(
-                'Guardar cambios',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              ],
             ),
           ],
         ),

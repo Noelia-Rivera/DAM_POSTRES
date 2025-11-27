@@ -47,5 +47,25 @@ class ProductoRemoteDataSource {
       body: model.toDto(),
     );
   }
+
+  Future<void> deleteProducto(String id) async {
+    final productoId = int.tryParse(id);
+    if (productoId == null) {
+      throw ArgumentError('ID de producto inválido');
+    }
+
+    await apiClient.delete(
+      '${ApiConfig.productosPath}/$productoId',
+      requiresAuth: true,
+    );
+  }
+
+  Future<ProductoModel> getProductoById(String id) async {
+    final response = await apiClient.get(
+      '${ApiConfig.productosPath}/$id',
+      requiresAuth: false,
+    );
+    return ProductoModel.fromJson(response as Map<String, dynamic>);
+  }
 }
 
