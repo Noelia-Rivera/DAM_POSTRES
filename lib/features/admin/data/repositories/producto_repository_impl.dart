@@ -1,30 +1,47 @@
+import 'dart:io';
+
 import '../../domain/entities/producto.dart';
 import '../../domain/repositories/producto_repository.dart';
-import '../datasources/producto_mock_data_source.dart';
+import '../datasources/producto_remote_data_source.dart';
 
 class ProductoRepositoryImpl implements ProductoRepository {
-  final ProductoMockDataSource dataSource;
+  final ProductoRemoteDataSource remoteDataSource;
 
-  ProductoRepositoryImpl({required this.dataSource});
+  ProductoRepositoryImpl({required this.remoteDataSource});
 
   @override
   Future<List<Producto>> getProductos() async {
-    return await dataSource.getProductos();
+    return await remoteDataSource.getProductos();
+  }
+
+  @override
+  Future<Producto> getProductoById(String id) async {
+    return await remoteDataSource.getProductoById(id);
   }
 
   @override
   Future<List<Producto>> getProductosByCategoria(String categoria) async {
-    final productos = await dataSource.getProductos();
+    final productos = await remoteDataSource.getProductos();
     return productos.where((p) => p.categoria == categoria).toList();
   }
 
   @override
   Future<void> createProducto(Producto producto) async {
-    await dataSource.createProducto(producto);
+    await remoteDataSource.createProducto(producto);
+  }
+
+  @override
+  Future<Producto> createProductoWithImage(Producto producto, File imageFile) async {
+    return await remoteDataSource.createProductoWithImage(producto, imageFile);
   }
 
   @override
   Future<void> updateProducto(Producto producto) async {
-    await dataSource.updateProducto(producto);
+    await remoteDataSource.updateProducto(producto);
+  }
+
+  @override
+  Future<void> deleteProducto(String id) async {
+    await remoteDataSource.deleteProducto(id);
   }
 }

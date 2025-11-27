@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/producto.dart';
+import '../../domain/entities/categoria.dart';
 import '../bloc/admin_bloc.dart';
 
 class EditarProductoDialog extends StatefulWidget {
   final Producto producto;
+  final List<Categoria> categorias;
 
   const EditarProductoDialog({
     super.key,
     required this.producto,
+    required this.categorias,
   });
 
   @override
@@ -19,15 +22,24 @@ class _EditarProductoDialogState extends State<EditarProductoDialog> {
   late TextEditingController _nombreController;
   late TextEditingController _descripcionController;
   late TextEditingController _precioController;
-  String? _categoriaSeleccionada;
+  String? _categoriaIdSeleccionada;
 
   @override
   void initState() {
     super.initState();
     _nombreController = TextEditingController(text: widget.producto.nombre);
-    _descripcionController = TextEditingController();
+    _descripcionController = TextEditingController(text: widget.producto.descripcion ?? '');
     _precioController = TextEditingController(text: widget.producto.precio.toString());
-    _categoriaSeleccionada = widget.producto.categoria;
+    _categoriaIdSeleccionada = widget.producto.categoriaId;
+    if (_categoriaIdSeleccionada == null && widget.categorias.isNotEmpty) {
+      try {
+        _categoriaIdSeleccionada = widget.categorias
+            .firstWhere((cat) => cat.nombre == widget.producto.categoria)
+            .id;
+      } catch (_) {
+        _categoriaIdSeleccionada = widget.categorias.first.id;
+      }
+    }
   }
 
   @override
@@ -41,18 +53,33 @@ class _EditarProductoDialogState extends State<EditarProductoDialog> {
   void _guardarCambios() {
     if (_nombreController.text.isEmpty ||
         _precioController.text.isEmpty ||
-        _categoriaSeleccionada == null) {
+        (_categoriaIdSeleccionada == null && widget.producto.categoriaId == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor completa todos los campos')),
       );
       return;
     }
 
+    Categoria? categoriaSeleccionada;
+    if (_categoriaIdSeleccionada != null) {
+      try {
+        categoriaSeleccionada = widget.categorias.firstWhere(
+          (cat) => cat.id == _categoriaIdSeleccionada,
+        );
+      } catch (_) {
+        categoriaSeleccionada = null;
+      }
+    }
+
+    final descripcion = _descripcionController.text.trim();
+
     final productoActualizado = Producto(
       id: widget.producto.id,
       nombre: _nombreController.text,
       precio: double.tryParse(_precioController.text) ?? 0,
-      categoria: _categoriaSeleccionada!,
+      categoria: categoriaSeleccionada?.nombre ?? widget.producto.categoria,
+      categoriaId: categoriaSeleccionada?.id ?? widget.producto.categoriaId,
+      descripcion: descripcion.isEmpty ? widget.producto.descripcion : descripcion,
       imagenUrl: widget.producto.imagenUrl,
     );
 
@@ -159,34 +186,39 @@ class _EditarProductoDialogState extends State<EditarProductoDialog> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        value: _categoriaSeleccionada,
-                        hint: const Text('Categoría', style: TextStyle(fontSize: 14)),
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: Colors.grey.shade100,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.orange.shade200),
+                      if (widget.categorias.isEmpty)
+                        const Text('No hay categorías disponibles', style: TextStyle(color: Colors.red))
+                      else
+                        DropdownButtonFormField<String>(
+                          value: _categoriaIdSeleccionada,
+                          hint: const Text('Categoría', style: TextStyle(fontSize: 14)),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.grey.shade100,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.orange.shade200),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.orange.shade200),
+                            ),
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.orange.shade200),
-                          ),
+                          items: widget.categorias
+                              .map(
+                                (cat) => DropdownMenuItem(
+                                  value: cat.id,
+                                  child: Text(cat.nombre, style: const TextStyle(fontSize: 14)),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _categoriaIdSeleccionada = value;
+                            });
+                          },
                         ),
-                        items: ['Categoria 1', 'Categoria 2']
-                            .map((cat) => DropdownMenuItem(
-                                  value: cat,
-                                  child: Text(cat, style: const TextStyle(fontSize: 14)),
-                                ))
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _categoriaSeleccionada = value;
-                          });
-                        },
-                      ),
                     ],
                   ),
                 ),

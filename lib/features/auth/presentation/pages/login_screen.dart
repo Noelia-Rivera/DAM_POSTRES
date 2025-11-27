@@ -1,8 +1,63 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-class LoginScreen extends StatelessWidget {
+import '../bloc/login_bloc.dart';
+
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _onLoginPressed(BuildContext context) {
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (username.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ingresa usuario y contraseña')), 
+      );
+      return;
+    }
+
+    context.read<LoginBloc>().add(
+          LoginSubmitted(username: username, password: password),
+        );
+  }
+
+  void _handleNavigationByRole(BuildContext context, List<String> roles) {
+    if (roles.isEmpty) {
+      context.go('/cliente');
+      return;
+    }
+
+    // Los roles vienen del backend en mayúsculas según la imagen proporcionada
+    final primaryRole = roles.first.toUpperCase();
+
+    if (primaryRole == 'ADMIN') {
+      context.go('/admin');
+    } else if (primaryRole == 'REPARTIDOR') {
+      context.go('/repartidor');
+    } else if (primaryRole == 'CLIENTE') {
+      context.go('/cliente');
+    } else {
+      // Por defecto, redirigir a cliente
+      context.go('/cliente');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,16 +66,34 @@ class LoginScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
+        child: BlocListener<LoginBloc, LoginState>(
+          listener: (context, state) {
+            if (state is LoginFailure) {
+              // IMPORTANTE: Si el login falla, NO navegar
+              // Solo mostrar el error y permanecer en la pantalla de login
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 4),
+                ),
+              );
+            } else if (state is LoginSuccess) {
+              // SOLO navegar si el login fue exitoso
+              // La sesión ya fue guardada en el LoginBloc
+              _handleNavigationByRole(context, state.user.roles);
+            }
+          },
+          child: Center(
+            child: SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
                     SizedBox(
                       height: 160,
                       child: Stack(
@@ -75,6 +148,7 @@ class LoginScreen extends StatelessWidget {
                     const SizedBox(height: 40),
 
                     TextField(
+                      controller: _usernameController,
                       decoration: InputDecoration(
                         labelText: 'Usuario',
                         labelStyle: const TextStyle(color: Colors.grey),
@@ -96,6 +170,7 @@ class LoginScreen extends StatelessWidget {
                     const SizedBox(height: 20),
 
                     TextField(
+                      controller: _passwordController,
                       obscureText: true,
                       decoration: InputDecoration(
                         labelText: 'Contraseña',
@@ -132,28 +207,46 @@ class LoginScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
 
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(22),
+                    BlocBuilder<LoginBloc, LoginState>(
+                      builder: (context, state) {
+                        final isLoading = state is LoginLoading;
+
+                        return SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(22),
+                              ),
+                              backgroundColor: cs.primary.withOpacity(0.7),
+                              foregroundColor: cs.onPrimary,
+                            ),
+                            onPressed: isLoading
+                                ? null
+                                : () => _onLoginPressed(context),
+                            child: isLoading
+                                ? const SizedBox(
+                                    height: 22,
+                                    width: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.4,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                : const Text(
+                                    'Sign In',
+                                    style: TextStyle(fontSize: 18),
+                                  ),
                           ),
-                          backgroundColor: cs.primary.withOpacity(0.7),
-                          foregroundColor: cs.onPrimary,
-                        ),
-                        onPressed: () {
-                          context.go('/home');
-                        },
-                        child: const Text(
-                          'Sign In',
-                          style: TextStyle(fontSize: 18),
-                        ),
-                      ),
+                        );
+                      },
                     ),
-                    const SizedBox(height: 40),
-                  ],
+                      const SizedBox(height: 40),
+                    ],
+                  ),
                 ),
               ),
             ),

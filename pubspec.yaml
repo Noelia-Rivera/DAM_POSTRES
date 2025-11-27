@@ -35,6 +35,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   go_router: ^17.0.0
+  http: ^1.2.2
   
   # Dependencias para la gestión de estado
   flutter_bloc: ^8.1.3
@@ -42,6 +43,28 @@ dependencies:
   
   # Dependencia para el manejo de fechas
   intl: ^0.18.1
+  
+  # Dependencia para almacenamiento local
+  shared_preferences: ^2.2.2
+  
+  # Provider para gestión de estado
+  provider: ^6.1.1
+  
+  # Image picker para seleccionar imágenes
+  image_picker: ^1.0.7
+  
+  # HTTP parser para multipart requests
+  http_parser: ^4.0.2
+  
+  # OpenStreetMap para tracking (GRATIS, sin API key)
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.0
+  
+  # Geolocalización
+  geolocator: ^10.1.0
+  
+  # WebSocket para tiempo real
+  web_socket_channel: ^2.4.0
 
 dev_dependencies:
   flutter_test:

@@ -1,8 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../domain/entities/producto.dart';
+import '../../domain/entities/categoria.dart';
 import '../bloc/admin_bloc.dart';
+import '../bloc/categoria_bloc.dart';
 import '../widgets/admin_drawer.dart';
 
 class VistaAgregar extends StatefulWidget {
@@ -16,7 +21,15 @@ class _VistaAgregarState extends State<VistaAgregar> {
   final _nombreController = TextEditingController();
   final _precioController = TextEditingController();
   final _descripcionController = TextEditingController();
-  String? _categoriaSeleccionada;
+  final ImagePicker _imagePicker = ImagePicker();
+  File? _selectedImage;
+  Categoria? _categoriaSeleccionada;
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<CategoriaBloc>().add(LoadCategorias());
+  }
 
   @override
   void dispose() {
@@ -24,6 +37,54 @@ class _VistaAgregarState extends State<VistaAgregar> {
     _precioController.dispose();
     _descripcionController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Galería'),
+              onTap: () async {
+                Navigator.pop(context);
+                final pickedFile = await _imagePicker.pickImage(
+                  source: ImageSource.gallery,
+                  maxWidth: 1024,
+                  maxHeight: 1024,
+                  imageQuality: 85,
+                );
+                if (pickedFile != null) {
+                  setState(() {
+                    _selectedImage = File(pickedFile.path);
+                  });
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Cámara'),
+              onTap: () async {
+                Navigator.pop(context);
+                final pickedFile = await _imagePicker.pickImage(
+                  source: ImageSource.camera,
+                  maxWidth: 1024,
+                  maxHeight: 1024,
+                  imageQuality: 85,
+                );
+                if (pickedFile != null) {
+                  setState(() {
+                    _selectedImage = File(pickedFile.path);
+                  });
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _crearProducto() {
@@ -36,14 +97,23 @@ class _VistaAgregarState extends State<VistaAgregar> {
       return;
     }
 
+    final categoria = _categoriaSeleccionada!;
+    final descripcion = _descripcionController.text.trim();
+
     final producto = Producto(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       nombre: _nombreController.text,
       precio: double.tryParse(_precioController.text) ?? 0,
-      categoria: _categoriaSeleccionada!,
+      categoria: categoria.nombre,
+      categoriaId: categoria.id,
+      descripcion: descripcion.isEmpty ? null : descripcion,
     );
 
-    context.read<AdminBloc>().add(CreateProducto(producto));
+    if (_selectedImage != null) {
+      context.read<AdminBloc>().add(CreateProductoWithImage(producto, _selectedImage!));
+    } else {
+      context.read<AdminBloc>().add(CreateProducto(producto));
+    }
     context.pop();
   }
 
@@ -147,38 +217,75 @@ class _VistaAgregarState extends State<VistaAgregar> {
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                width: 150,
-                                height: 150,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF5E6D3),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Text(
-                                      'Seleccionar\nImagen',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: const BoxDecoration(
-                                        color: Colors.black,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.add,
-                                        color: Colors.white,
-                                        size: 24,
-                                      ),
-                                    ),
-                                  ],
+                              GestureDetector(
+                                onTap: _pickImage,
+                                child: Container(
+                                  width: 150,
+                                  height: 150,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF5E6D3),
+                                    borderRadius: BorderRadius.circular(12),
+                                    image: _selectedImage != null
+                                        ? DecorationImage(
+                                            image: FileImage(_selectedImage!),
+                                            fit: BoxFit.cover,
+                                          )
+                                        : null,
+                                  ),
+                                  child: _selectedImage == null
+                                      ? Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            const Text(
+                                              'Seleccionar\nImagen',
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                color: Colors.grey,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Container(
+                                              padding: const EdgeInsets.all(12),
+                                              decoration: const BoxDecoration(
+                                                color: Colors.black,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: const Icon(
+                                                Icons.add,
+                                                color: Colors.white,
+                                                size: 24,
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      : Stack(
+                                          children: [
+                                            Positioned(
+                                              top: 4,
+                                              right: 4,
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  setState(() {
+                                                    _selectedImage = null;
+                                                  });
+                                                },
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(4),
+                                                  decoration: const BoxDecoration(
+                                                    color: Colors.red,
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                  child: const Icon(
+                                                    Icons.close,
+                                                    color: Colors.white,
+                                                    size: 16,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -268,27 +375,50 @@ class _VistaAgregarState extends State<VistaAgregar> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          DropdownButtonFormField<String>(
-                            value: _categoriaSeleccionada,
-                            hint: const Text('Categorías'),
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: Colors.white.withOpacity(0.7),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                            items: ['Categoria 1', 'Categoria 2']
-                                .map((cat) => DropdownMenuItem(
-                                      value: cat,
-                                      child: Text(cat),
-                                    ))
-                                .toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _categoriaSeleccionada = value;
-                              });
+                          BlocBuilder<CategoriaBloc, CategoriaState>(
+                            builder: (context, state) {
+                              if (state is CategoriaLoading) {
+                                return const Center(child: CircularProgressIndicator());
+                              } else if (state is CategoriaError) {
+                                return Text(
+                                  'Error: ${state.message}',
+                                  style: const TextStyle(color: Colors.red),
+                                );
+                              } else if (state is CategoriaLoaded && state.categorias.isNotEmpty) {
+                                return DropdownButtonFormField<String>(
+                                  value: _categoriaSeleccionada?.id,
+                                  hint: const Text('Categorías'),
+                                  decoration: InputDecoration(
+                                    filled: true,
+                                    fillColor: Colors.white.withOpacity(0.7),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                  ),
+                                  items: state.categorias
+                                      .map(
+                                        (cat) => DropdownMenuItem(
+                                          value: cat.id,
+                                          child: Text(cat.nombre),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (value) {
+                                    if (value == null) return;
+                                    final categoriaSeleccionada = state.categorias.firstWhere(
+                                      (cat) => cat.id == value,
+                                    );
+                                    setState(() {
+                                      _categoriaSeleccionada = categoriaSeleccionada;
+                                    });
+                                  },
+                                );
+                              }
+                              return const Text(
+                                'No hay categorías disponibles',
+                                style: TextStyle(color: Colors.grey),
+                              );
                             },
                           ),
                           const SizedBox(height: 24),

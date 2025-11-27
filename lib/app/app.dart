@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../core/routing/router.dart';
+import '../features/cliente/presentation/providers/carrito_provider.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -17,27 +19,30 @@ class App extends StatelessWidget {
       brightness: Brightness.dark,
     );
 
-    return MaterialApp.router(
-      debugShowCheckedModeBanner: false,
-      title: 'Deliv',
-      themeMode: ThemeMode.system,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: lightScheme,
-        textTheme: const TextTheme(
-          headlineMedium: TextStyle(fontWeight: FontWeight.w800),
-          bodyMedium: TextStyle(color: Colors.black54),
+    return ChangeNotifierProvider(
+      create: (_) => CarritoProvider(),
+      child: MaterialApp.router(
+        debugShowCheckedModeBanner: false,
+        title: 'Deliv',
+        themeMode: ThemeMode.system,
+        theme: ThemeData(
+          useMaterial3: true,
+          colorScheme: lightScheme,
+          textTheme: const TextTheme(
+            headlineMedium: TextStyle(fontWeight: FontWeight.w800),
+            bodyMedium: TextStyle(color: Colors.black54),
+          ),
         ),
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorScheme: darkScheme,
-        textTheme: const TextTheme(
-          headlineMedium: TextStyle(fontWeight: FontWeight.w800),
-          bodyMedium: TextStyle(),
+        darkTheme: ThemeData(
+          useMaterial3: true,
+          colorScheme: darkScheme,
+          textTheme: const TextTheme(
+            headlineMedium: TextStyle(fontWeight: FontWeight.w800),
+            bodyMedium: TextStyle(),
+          ),
         ),
+        routerConfig: router,
       ),
-      routerConfig: router,
     );
   }
 }

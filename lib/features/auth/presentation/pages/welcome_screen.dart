@@ -1,11 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/services/auth_service.dart';
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
 
   @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  final _authService = AuthService();
+  bool _isChecking = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthAndRedirect();
+  }
+
+  Future<void> _checkAuthAndRedirect() async {
+    final isAuthenticated = await _authService.isAuthenticated();
+    if (isAuthenticated && mounted) {
+      final role = await _authService.getPrimaryRole();
+      if (role == 'ADMIN') {
+        context.go('/admin');
+      } else if (role == 'REPARTIDOR') {
+        context.go('/repartidor');
+      } else if (role == 'CLIENTE') {
+        context.go('/cliente');
+      }
+    }
+    if (mounted) {
+      setState(() {
+        _isChecking = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isChecking) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(

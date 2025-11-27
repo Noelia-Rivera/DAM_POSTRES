@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../bloc/pedido_bloc.dart';
 import '../widgets/pedido_card.dart';
 import '../../domain/entities/pedido.dart';
@@ -56,10 +57,8 @@ class _PedidosScreenState extends State<PedidosScreen> {
               child: PedidoCard(
                 pedido: pedido,
                 onConfirmar: () {
-                  // Handle confirm button press
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Pedido confirmado')),
-                  );
+                  // Navigate to detail screen
+                  context.push('/pedidos/detalle', extra: pedido);
                 },
               ),
             );

@@ -4,12 +4,16 @@ class Producto {
   final double precio;
   final String? imagenUrl;
   final String categoria;
+  final String? descripcion;
+  final String? categoriaId;
 
-  Producto({
+  const Producto({
     required this.id,
     required this.nombre,
     required this.precio,
     this.imagenUrl,
     required this.categoria,
+    this.descripcion,
+    this.categoriaId,
   });
 }

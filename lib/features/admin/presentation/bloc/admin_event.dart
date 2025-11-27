@@ -34,6 +34,16 @@ class CreateProducto extends AdminEvent {
   List<Object> get props => [producto];
 }
 
+class CreateProductoWithImage extends AdminEvent {
+  final Producto producto;
+  final File imageFile;
+
+  const CreateProductoWithImage(this.producto, this.imageFile);
+
+  @override
+  List<Object> get props => [producto, imageFile];
+}
+
 class UpdateProducto extends AdminEvent {
   final Producto producto;
 
@@ -41,4 +51,13 @@ class UpdateProducto extends AdminEvent {
 
   @override
   List<Object> get props => [producto];
+}
+
+class DeleteProducto extends AdminEvent {
+  final String productoId;
+
+  const DeleteProducto(this.productoId);
+
+  @override
+  List<Object> get props => [productoId];
 }

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/services/auth_service.dart';
 import '../bloc/admin_bloc.dart';
+import '../bloc/categoria_bloc.dart';
 import '../widgets/producto_card.dart';
 import '../widgets/editar_producto_dialog.dart';
 import '../widgets/admin_drawer.dart';
+import '../../domain/entities/categoria.dart';
 
 class VistaAdmin extends StatefulWidget {
   const VistaAdmin({super.key});
@@ -13,208 +16,126 @@ class VistaAdmin extends StatefulWidget {
   State<VistaAdmin> createState() => _VistaAdminState();
 }
 
-class _VistaAdminState extends State<VistaAdmin> {
-  String? categoriaSeleccionada;
+class _VistaAdminState extends State<VistaAdmin> with SingleTickerProviderStateMixin {
+  Categoria? categoriaSeleccionada;
+  late TabController _tabController;
+  int _currentNavIndex = 0;
+  String _username = 'Admin';
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
     context.read<AdminBloc>().add(const LoadProductos());
+    context.read<CategoriaBloc>().add(LoadCategorias());
+    _loadUsername();
+  }
+
+  Future<void> _loadUsername() async {
+    final authService = AuthService();
+    final user = await authService.getUser();
+    if (user != null && mounted) {
+      setState(() => _username = user.username);
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final categoriaState = context.watch<CategoriaBloc>().state;
+    final categorias = categoriaState is CategoriaLoaded ? categoriaState.categorias : <Categoria>[];
+
     return Scaffold(
       backgroundColor: Colors.white,
       drawer: const AdminDrawer(),
       body: Column(
         children: [
+          // Header
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-            decoration: const BoxDecoration(
-              color: Color(0xFFD6ADA7),
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: const BoxDecoration(color: Color(0xFFD6ADA7)),
             child: SafeArea(
               bottom: false,
               child: Row(
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.menu),
-                      onPressed: () {
-                        Scaffold.of(context).openDrawer();
-                      },
+                  Builder(
+                    builder: (ctx) => Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.menu, color: Colors.white),
+                        onPressed: () => Scaffold.of(ctx).openDrawer(),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
+          // Contenido principal
           Expanded(
             child: SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    const Text(
-                      'Hola, Admin123',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    Text('Hola, $_username', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
-                    const Text(
-                      'Agregar Postres',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
-                    ),
+                    const Text('Agregar Postres', style: TextStyle(fontSize: 14, color: Colors.grey)),
                     const SizedBox(height: 20),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          _buildFilterChip('+ Editar', false, () {}),
-                          const SizedBox(width: 8),
-                          _buildFilterChip(
-                            'Todos',
-                            categoriaSeleccionada == null,
-                            () {
-                              setState(() => categoriaSeleccionada = null);
-                              context.read<AdminBloc>().add(const ChangeCategoria(null));
-                            },
-                          ),
-                          const SizedBox(width: 8),
-                          _buildFilterChip(
-                            'Categoria 1',
-                            categoriaSeleccionada == 'Categoria 1',
-                            () {
-                              setState(() => categoriaSeleccionada = 'Categoria 1');
-                              context.read<AdminBloc>().add(const ChangeCategoria('Categoria 1'));
-                            },
-                          ),
-                          const SizedBox(width: 8),
-                          _buildFilterChip(
-                            'Categoria 2',
-                            categoriaSeleccionada == 'Categoria 2',
-                            () {
-                              setState(() => categoriaSeleccionada = 'Categoria 2');
-                              context.read<AdminBloc>().add(const ChangeCategoria('Categoria 2'));
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
+                    _buildCategoriaFilters(categorias, categoriaState),
                     const SizedBox(height: 20),
-                    InkWell(
-                      onTap: () => context.go('/admin/agregar'),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(40),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300, width: 2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            '+ Agregar nuevo producto',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                    _buildAgregarProductoButton(),
                     const SizedBox(height: 20),
-                    BlocBuilder<AdminBloc, AdminState>(
-                      builder: (context, state) {
-                        if (state is AdminLoading) {
-                          return const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(40),
-                              child: CircularProgressIndicator(),
-                            ),
-                          );
-                        } else if (state is AdminError) {
-                          return Center(
-                            child: Text('Error: ${state.message}'),
-                          );
-                        } else if (state is AdminLoaded) {
-                          return GridView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 16,
-                              mainAxisSpacing: 16,
-                              childAspectRatio: 0.75,
-                            ),
-                            itemCount: state.productos.length,
-                            itemBuilder: (context, index) {
-                              final producto = state.productos[index];
-                              return ProductoCard(
-                                producto: producto,
-                                onEdit: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (dialogContext) => BlocProvider.value(
-                                      value: context.read<AdminBloc>(),
-                                      child: EditarProductoDialog(producto: producto),
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                          );
-                        }
-                        return const SizedBox();
-                      },
-                    ),
+                    _buildProductosGrid(categorias),
                   ],
                 ),
               ),
             ),
           ),
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFD6ADA7).withOpacity(0.3),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-            ),
-            child: SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.home_outlined),
-                      onPressed: () {},
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.calendar_today_outlined),
-                      onPressed: () {},
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.person_outline),
-                      onPressed: () {},
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+          // Bottom Navigation
+          _buildBottomNav(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoriaFilters(List<Categoria> categorias, CategoriaState state) {
+    if (state is CategoriaLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: CircularProgressIndicator(strokeWidth: 2),
+      );
+    }
+    if (state is CategoriaError) {
+      return Text('Error: ${state.message}', style: const TextStyle(color: Colors.red));
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          // Filtro Todos
+          _buildFilterChip('Todos', categoriaSeleccionada == null, () {
+            setState(() => categoriaSeleccionada = null);
+            context.read<AdminBloc>().add(const ChangeCategoria(null));
+          }),
+          // Filtros de categorías
+          ...categorias.map((cat) => Padding(
+            padding: const EdgeInsets.only(left: 8),
+            child: _buildFilterChip(cat.nombre, categoriaSeleccionada?.id == cat.id, () {
+              setState(() => categoriaSeleccionada = cat);
+              context.read<AdminBloc>().add(ChangeCategoria(cat.nombre));
+            }),
+          )),
         ],
       ),
     );
@@ -228,17 +149,125 @@ class _VistaAdminState extends State<VistaAdmin> {
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFFD6ADA7) : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? const Color(0xFFD6ADA7) : Colors.grey.shade300,
+          border: Border.all(color: isSelected ? const Color(0xFFD6ADA7) : Colors.grey.shade300),
+        ),
+        child: Text(label, style: TextStyle(
+          color: isSelected ? Colors.white : Colors.black,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        )),
+      ),
+    );
+  }
+
+  Widget _buildAgregarProductoButton() {
+    return InkWell(
+      onTap: () => context.go('/admin/agregar'),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(40),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300, width: 2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Center(
+          child: Text('+ Agregar nuevo producto', style: TextStyle(color: Colors.grey, fontSize: 16)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductosGrid(List<Categoria> categorias) {
+    return BlocBuilder<AdminBloc, AdminState>(
+      builder: (context, state) {
+        if (state is AdminLoading) {
+          return const Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator());
+        }
+        if (state is AdminError) {
+          return Center(child: Text('Error: ${state.message}'));
+        }
+        if (state is AdminLoaded) {
+          if (state.productos.isEmpty) {
+            return const Padding(
+              padding: EdgeInsets.all(40),
+              child: Text('No hay productos', style: TextStyle(color: Colors.grey)),
+            );
+          }
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2, crossAxisSpacing: 16, mainAxisSpacing: 16, childAspectRatio: 0.75,
+            ),
+            itemCount: state.productos.length,
+            itemBuilder: (context, index) {
+              final producto = state.productos[index];
+              return ProductoCard(
+                producto: producto,
+                onEdit: () => _showEditarProductoDialog(producto, categorias),
+                onDelete: () => context.read<AdminBloc>().add(DeleteProducto(producto.id)),
+              );
+            },
+          );
+        }
+        return const SizedBox();
+      },
+    );
+  }
+
+  Widget _buildBottomNav() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFD6ADA7),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(Icons.home_outlined, 'Inicio', 0),
+              _buildNavItem(Icons.calendar_today_outlined, 'Pedidos', 1),
+              _buildNavItem(Icons.person_outline, 'Perfil', 2),
+            ],
           ),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    final isSelected = _currentNavIndex == index;
+    return InkWell(
+      onTap: () {
+        setState(() => _currentNavIndex = index);
+        if (index == 1) context.push('/admin/pedidos');
+        if (index == 2) context.go('/profile');
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: isSelected ? Colors.white : Colors.white70),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(
+            color: isSelected ? Colors.white : Colors.white70,
+            fontSize: 12,
+          )),
+        ],
+      ),
+    );
+  }
+
+  void _showEditarProductoDialog(producto, List<Categoria> categorias) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => BlocProvider.value(
+        value: context.read<AdminBloc>(),
+        child: EditarProductoDialog(producto: producto, categorias: categorias),
       ),
     );
   }
