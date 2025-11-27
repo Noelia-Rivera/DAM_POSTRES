@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import '../config/api_config.dart';
 import '../services/auth_service.dart';
@@ -199,6 +201,57 @@ class ApiClient {
       if (data['error'] is String) return data['error'] as String;
     }
     return null;
+  }
+
+  /// Envía una petición multipart con archivo y datos JSON
+  Future<dynamic> postMultipart(
+    String path, {
+    required File file,
+    required Map<String, dynamic> jsonData,
+    String fileFieldName = 'file',
+    String jsonFieldName = 'producto',
+    bool requiresAuth = true,
+  }) async {
+    final uri = _buildUri(path);
+    final request = http.MultipartRequest('POST', uri);
+
+    // Agregar headers de autenticación
+    if (requiresAuth) {
+      final token = await _authService.getAccessToken();
+      if (token == null || token.isEmpty) {
+        throw const UnauthorizedException(
+          message: 'Sesión no válida. Inicia sesión nuevamente.',
+        );
+      }
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+
+    // Agregar el archivo
+    final fileStream = http.ByteStream(file.openRead());
+    final fileLength = await file.length();
+    final fileName = file.path.split('/').last;
+    
+    final multipartFile = http.MultipartFile(
+      fileFieldName,
+      fileStream,
+      fileLength,
+      filename: fileName,
+    );
+    request.files.add(multipartFile);
+
+    // Agregar el JSON como parte del multipart
+    request.files.add(
+      http.MultipartFile.fromString(
+        jsonFieldName,
+        jsonEncode(jsonData),
+        filename: '$jsonFieldName.json',
+        contentType: MediaType('application', 'json'),
+      ),
+    );
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    return _handleResponse(response);
   }
 
   void close() {

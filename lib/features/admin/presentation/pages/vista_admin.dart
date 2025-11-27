@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/services/auth_service.dart';
 import '../bloc/admin_bloc.dart';
 import '../bloc/categoria_bloc.dart';
 import '../widgets/producto_card.dart';
 import '../widgets/editar_producto_dialog.dart';
-import '../widgets/editar_categoria_dialog.dart';
-import '../widgets/crear_categoria_dialog.dart';
 import '../widgets/admin_drawer.dart';
 import '../../domain/entities/categoria.dart';
 
@@ -21,6 +20,7 @@ class _VistaAdminState extends State<VistaAdmin> with SingleTickerProviderStateM
   Categoria? categoriaSeleccionada;
   late TabController _tabController;
   int _currentNavIndex = 0;
+  String _username = 'Admin';
 
   @override
   void initState() {
@@ -28,6 +28,15 @@ class _VistaAdminState extends State<VistaAdmin> with SingleTickerProviderStateM
     _tabController = TabController(length: 3, vsync: this);
     context.read<AdminBloc>().add(const LoadProductos());
     context.read<CategoriaBloc>().add(LoadCategorias());
+    _loadUsername();
+  }
+
+  Future<void> _loadUsername() async {
+    final authService = AuthService();
+    final user = await authService.getUser();
+    if (user != null && mounted) {
+      setState(() => _username = user.username);
+    }
   }
 
   @override
@@ -78,7 +87,7 @@ class _VistaAdminState extends State<VistaAdmin> with SingleTickerProviderStateM
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    const Text('Hola, Admin123', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text('Hola, $_username', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
                     const Text('Agregar Postres', style: TextStyle(fontSize: 14, color: Colors.grey)),
                     const SizedBox(height: 20),
@@ -114,12 +123,6 @@ class _VistaAdminState extends State<VistaAdmin> with SingleTickerProviderStateM
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          // Botón + Editar
-          _buildActionButton('+ Editar', () => _showEditarCategoriaDialog(categorias)),
-          const SizedBox(width: 8),
-          // Botón + Crear
-          _buildActionButton('+ Crear', () => _showCrearCategoriaDialog()),
-          const SizedBox(width: 8),
           // Filtro Todos
           _buildFilterChip('Todos', categoriaSeleccionada == null, () {
             setState(() => categoriaSeleccionada = null);
@@ -134,21 +137,6 @@ class _VistaAdminState extends State<VistaAdmin> with SingleTickerProviderStateM
             }),
           )),
         ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton(String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-        child: Text(label, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w500)),
       ),
     );
   }
@@ -216,6 +204,7 @@ class _VistaAdminState extends State<VistaAdmin> with SingleTickerProviderStateM
               return ProductoCard(
                 producto: producto,
                 onEdit: () => _showEditarProductoDialog(producto, categorias),
+                onDelete: () => context.read<AdminBloc>().add(DeleteProducto(producto.id)),
               );
             },
           );
@@ -256,7 +245,7 @@ class _VistaAdminState extends State<VistaAdmin> with SingleTickerProviderStateM
     return InkWell(
       onTap: () {
         setState(() => _currentNavIndex = index);
-        if (index == 1) context.go('/pedidos');
+        if (index == 1) context.push('/admin/pedidos');
         if (index == 2) context.go('/profile');
       },
       child: Column(
@@ -269,28 +258,6 @@ class _VistaAdminState extends State<VistaAdmin> with SingleTickerProviderStateM
             fontSize: 12,
           )),
         ],
-      ),
-    );
-  }
-
-  void _showEditarCategoriaDialog(List<Categoria> categorias) {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (dialogContext) => BlocProvider.value(
-        value: context.read<CategoriaBloc>(),
-        child: EditarCategoriaDialog(categorias: categorias),
-      ),
-    );
-  }
-
-  void _showCrearCategoriaDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (dialogContext) => BlocProvider.value(
-        value: context.read<CategoriaBloc>(),
-        child: const CrearCategoriaDialog(),
       ),
     );
   }

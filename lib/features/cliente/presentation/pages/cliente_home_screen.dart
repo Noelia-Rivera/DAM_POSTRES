@@ -1,9 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/api_services.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../admin/domain/entities/categoria.dart';
 import '../../../admin/domain/entities/producto.dart';
+import '../providers/carrito_provider.dart';
 
 class ClienteHomeScreen extends StatefulWidget {
   const ClienteHomeScreen({super.key});
@@ -19,12 +23,32 @@ class _ClienteHomeScreenState extends State<ClienteHomeScreen> {
   bool _isLoading = true;
   String? _error;
   String _username = 'Cliente';
+  
+  final NotificationService _notificationService = NotificationService();
+  StreamSubscription<NotificacionPedido>? _notificacionSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadData();
     _loadUsername();
+    _iniciarNotificaciones();
+  }
+
+  void _iniciarNotificaciones() {
+    _notificationService.iniciar();
+    _notificacionSubscription = _notificationService.notificacionStream.listen((notificacion) {
+      if (mounted) {
+        NotificationService.mostrarNotificacion(context, notificacion);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _notificacionSubscription?.cancel();
+    _notificationService.detener();
+    super.dispose();
   }
 
   Future<void> _loadUsername() async {
@@ -63,9 +87,7 @@ class _ClienteHomeScreenState extends State<ClienteHomeScreen> {
   }
 
   List<Producto> get _productosFiltrados {
-    if (_categoriaSeleccionada == null) {
-      return _productos;
-    }
+    if (_categoriaSeleccionada == null) return _productos;
     return _productos.where((p) => 
       p.categoriaId == _categoriaSeleccionada!.id ||
       p.categoria == _categoriaSeleccionada!.nombre
@@ -97,14 +119,8 @@ class _ClienteHomeScreenState extends State<ClienteHomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const SizedBox(height: 16),
-                Text(
-                  'Hola, $_username',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const Text(
-                  'Seleccione sus postres',
-                  style: TextStyle(color: Colors.grey, fontSize: 15),
-                ),
+                Text('Hola, $_username', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const Text('Seleccione sus postres', style: TextStyle(color: Colors.grey, fontSize: 15)),
                 const SizedBox(height: 20),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
@@ -112,36 +128,48 @@ class _ClienteHomeScreenState extends State<ClienteHomeScreen> {
                     'https://www.shutterstock.com/shutterstock/photos/2602005109/display_1500/stock-photo-delicious-cupcake-with-cream-and-red-berries-isolated-on-white-background-2602005109.jpg',
                     height: 180,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      height: 180,
-                      color: Colors.grey[200],
-                      child: const Icon(Icons.image, size: 50),
-                    ),
+                    errorBuilder: (_, __, ___) => Container(height: 180, color: Colors.grey[200], child: const Icon(Icons.image, size: 50)),
                   ),
                 ),
                 const SizedBox(height: 20),
                 _buildCategorias(),
                 const SizedBox(height: 20),
                 _buildProductos(),
+                const SizedBox(height: 80),
               ],
             ),
           ),
         ),
       ),
+      floatingActionButton: Consumer<CarritoProvider>(
+        builder: (context, carrito, _) {
+          if (carrito.isEmpty) return const SizedBox();
+          return FloatingActionButton.extended(
+            onPressed: () => context.push('/cliente/carrito'),
+            backgroundColor: const Color(0xFFD7B3AF),
+            icon: const Icon(Icons.shopping_cart, color: Colors.white),
+            label: Text('${carrito.cantidadTotal} - S/. ${carrito.total.toStringAsFixed(2)}',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          );
+        },
+      ),
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
         backgroundColor: const Color(0xFFD7B3AF),
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white70,
         showUnselectedLabels: true,
         currentIndex: 0,
         onTap: (index) {
-          if (index == 1) context.go('/pedidos');
-          if (index == 2) context.go('/profile');
+          if (index == 1) context.push('/cliente/carrito');
+          if (index == 2) context.push('/cliente/mis-pedidos');
+          if (index == 3) context.go('/profile');
         },
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home Page'),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_bag_outlined), label: 'Pedidos'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Mi Perfil'),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart_outlined), label: 'Carrito'),
+          BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: 'Pedidos'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Perfil'),
         ],
       ),
     );
@@ -149,84 +177,53 @@ class _ClienteHomeScreenState extends State<ClienteHomeScreen> {
 
   Widget _buildCategorias() {
     if (_isLoading) {
-      return const SizedBox(
-        height: 40,
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-      );
+      return const SizedBox(height: 40, child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
     }
-
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _CategoryChip(
-            label: 'Todos',
-            selected: _categoriaSeleccionada == null,
-            onTap: () => setState(() => _categoriaSeleccionada = null),
-          ),
-          ..._categorias.map((cat) => _CategoryChip(
-            label: cat.nombre,
-            selected: _categoriaSeleccionada?.id == cat.id,
-            onTap: () => setState(() => _categoriaSeleccionada = cat),
-          )),
-          const SizedBox(width: 10),
+          _CategoryChip(label: 'Todos', selected: _categoriaSeleccionada == null, onTap: () => setState(() => _categoriaSeleccionada = null)),
+          ..._categorias.map((cat) => _CategoryChip(label: cat.nombre, selected: _categoriaSeleccionada?.id == cat.id, onTap: () => setState(() => _categoriaSeleccionada = cat))),
         ],
       ),
     );
   }
 
   Widget _buildProductos() {
-    if (_isLoading) {
-      return const Padding(
-        padding: EdgeInsets.all(40),
-        child: CircularProgressIndicator(),
-      );
-    }
-
+    if (_isLoading) return const Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator());
     if (_error != null) {
       return Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Text('Error: $_error', style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: _loadData,
-              child: const Text('Reintentar'),
-            ),
-          ],
-        ),
+        child: Column(children: [
+          Text('Error: $_error', style: const TextStyle(color: Colors.red)),
+          const SizedBox(height: 10),
+          ElevatedButton(onPressed: _loadData, child: const Text('Reintentar')),
+        ]),
       );
     }
-
     if (_productosFiltrados.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(40),
-        child: Text('No hay productos disponibles', style: TextStyle(color: Colors.grey)),
-      );
+      return const Padding(padding: EdgeInsets.all(40), child: Text('No hay productos disponibles', style: TextStyle(color: Colors.grey)));
     }
-
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.8,
-      ),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.8),
       itemCount: _productosFiltrados.length,
       itemBuilder: (context, index) {
         final producto = _productosFiltrados[index];
         return _ProductCard(
-          image: producto.imagenUrl,
-          title: producto.nombre,
-          price: producto.precio,
+          producto: producto,
+          onAdd: () {
+            context.read<CarritoProvider>().agregarProducto(producto);
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${producto.nombre} agregado'), duration: const Duration(seconds: 1), behavior: SnackBarBehavior.floating));
+          },
         );
       },
     );
   }
 }
+
 
 class _AppDrawer extends StatelessWidget {
   const _AppDrawer();
@@ -234,12 +231,7 @@ class _AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(
-          topRight: Radius.circular(30),
-          bottomRight: Radius.circular(30),
-        ),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.only(topRight: Radius.circular(30), bottomRight: Radius.circular(30))),
       backgroundColor: const Color(0xFFD7B3AF),
       child: SafeArea(
         child: Padding(
@@ -248,54 +240,19 @@ class _AppDrawer extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 10),
-              const Text(
-                'POSTRECITOS',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  letterSpacing: 1,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                height: 38,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Buscar...',
-                    hintStyle: TextStyle(color: Colors.grey),
-                    prefixIcon: Icon(Icons.search, color: Colors.grey),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.only(top: 8),
-                  ),
-                ),
-              ),
+              const Text('POSTRECITOS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 1)),
               const SizedBox(height: 24),
-              const _DrawerItem(icon: Icons.home, label: 'Home'),
-              const _DrawerItem(icon: Icons.shopping_cart_outlined, label: 'Carrito'),
-              const _DrawerItem(icon: Icons.star_border, label: 'Favoritos'),
-              const _DrawerItem(icon: Icons.notifications_none, label: 'Notificaciones'),
+              _DrawerItem(icon: Icons.home, label: 'Home', onTap: () => Navigator.pop(context)),
+              _DrawerItem(icon: Icons.shopping_cart_outlined, label: 'Carrito', onTap: () { Navigator.pop(context); context.push('/cliente/carrito'); }),
+              _DrawerItem(icon: Icons.receipt_long, label: 'Mis Pedidos', onTap: () { Navigator.pop(context); context.push('/cliente/mis-pedidos'); }),
               const Spacer(),
               InkWell(
                 onTap: () async {
                   final authService = AuthService();
                   await authService.logout();
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    context.go('/');
-                  }
+                  if (context.mounted) { Navigator.pop(context); context.go('/'); }
                 },
-                child: const Row(
-                  children: [
-                    Icon(Icons.logout, color: Colors.white),
-                    SizedBox(width: 8),
-                    Text('Cerrar Sesión', style: TextStyle(color: Colors.white, fontSize: 16)),
-                  ],
-                ),
+                child: const Row(children: [Icon(Icons.logout, color: Colors.white), SizedBox(width: 8), Text('Cerrar Sesión', style: TextStyle(color: Colors.white, fontSize: 16))]),
               ),
               const SizedBox(height: 20),
             ],
@@ -309,19 +266,16 @@ class _AppDrawer extends StatelessWidget {
 class _DrawerItem extends StatelessWidget {
   final IconData icon;
   final String label;
-
-  const _DrawerItem({required this.icon, required this.label});
+  final VoidCallback? onTap;
+  const _DrawerItem({required this.icon, required this.label, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white, size: 24),
-          const SizedBox(width: 12),
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 16)),
-        ],
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(children: [Icon(icon, color: Colors.white, size: 24), const SizedBox(width: 12), Text(label, style: const TextStyle(color: Colors.white, fontSize: 16))]),
       ),
     );
   }
@@ -331,12 +285,7 @@ class _CategoryChip extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-
-  const _CategoryChip({
-    required this.label,
-    this.selected = false,
-    required this.onTap,
-  });
+  const _CategoryChip({required this.label, this.selected = false, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -349,17 +298,9 @@ class _CategoryChip extends StatelessWidget {
           decoration: BoxDecoration(
             color: selected ? const Color(0xFFD7B3AF) : Colors.white,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: selected ? Colors.transparent : Colors.grey.shade400,
-            ),
+            border: Border.all(color: selected ? Colors.transparent : Colors.grey.shade400),
           ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: selected ? Colors.white : Colors.black87,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          child: Text(label, style: TextStyle(color: selected ? Colors.white : Colors.black87, fontWeight: FontWeight.w500)),
         ),
       ),
     );
@@ -367,37 +308,38 @@ class _CategoryChip extends StatelessWidget {
 }
 
 class _ProductCard extends StatelessWidget {
-  final String? image;
-  final String title;
-  final double price;
-
-  const _ProductCard({
-    this.image,
-    required this.title,
-    required this.price,
-  });
+  final Producto producto;
+  final VoidCallback onAdd;
+  const _ProductCard({required this.producto, required this.onAdd});
 
   @override
   Widget build(BuildContext context) {
+    final carrito = context.watch<CarritoProvider>();
+    final cantidad = carrito.getCantidadProducto(producto.id);
+
     return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFD7B3AF)),
-        color: const Color(0xFFF5EAEA),
-      ),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFD7B3AF)), color: const Color(0xFFF5EAEA)),
       child: Column(
         children: [
           Expanded(
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-              child: image != null && image!.isNotEmpty
-                  ? Image.network(
-                      image!,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      errorBuilder: (_, __, ___) => _buildPlaceholder(),
-                    )
-                  : _buildPlaceholder(),
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  child: producto.imagenUrl != null && producto.imagenUrl!.isNotEmpty
+                      ? Image.network(producto.imagenUrl!, fit: BoxFit.cover, width: double.infinity, height: double.infinity, errorBuilder: (_, __, ___) => _buildPlaceholder())
+                      : _buildPlaceholder(),
+                ),
+                if (cantidad > 0)
+                  Positioned(
+                    top: 8, right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(color: const Color(0xFFD7B3AF), borderRadius: BorderRadius.circular(12)),
+                      child: Text('$cantidad', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+              ],
             ),
           ),
           Padding(
@@ -405,28 +347,19 @@ class _ProductCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                Text(producto.nombre, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      '\$${price.toStringAsFixed(2)}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Color(0xFFD7B3AF),
+                    Text('S/. ${producto.precio.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    GestureDetector(
+                      onTap: onAdd,
+                      child: Container(
+                        width: 28, height: 28,
+                        decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFD7B3AF)),
+                        child: const Icon(Icons.add, color: Colors.white, size: 20),
                       ),
-                      child: const Icon(Icons.add, color: Colors.white, size: 20),
                     ),
                   ],
                 ),
@@ -438,12 +371,5 @@ class _ProductCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPlaceholder() {
-    return Container(
-      color: Colors.grey[200],
-      child: const Center(
-        child: Icon(Icons.cake, size: 50, color: Colors.grey),
-      ),
-    );
-  }
+  Widget _buildPlaceholder() => Container(color: Colors.grey[200], child: const Center(child: Icon(Icons.cake, size: 50, color: Colors.grey)));
 }

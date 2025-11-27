@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import '../../domain/entities/producto.dart';
 import '../../domain/repositories/producto_repository.dart';
 import '../datasources/producto_remote_data_source.dart';
@@ -26,6 +28,11 @@ class ProductoRepositoryImpl implements ProductoRepository {
   @override
   Future<void> createProducto(Producto producto) async {
     await remoteDataSource.createProducto(producto);
+  }
+
+  @override
+  Future<Producto> createProductoWithImage(Producto producto, File imageFile) async {
+    return await remoteDataSource.createProductoWithImage(producto, imageFile);
   }
 
   @override

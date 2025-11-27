@@ -4,7 +4,7 @@ class ApiConfig {
   // Para web: usar localhost o 127.0.0.1
   // Para dispositivo físico: usar la IP de tu máquina en la red local
   
-  static const String baseUrl = 'http://localhost:9090';
+  static const String baseUrl = 'http://10.40.14.109:9090';
 
   // Prefix común para los endpoints REST
   static const String _apiPrefix = '/api/v1';

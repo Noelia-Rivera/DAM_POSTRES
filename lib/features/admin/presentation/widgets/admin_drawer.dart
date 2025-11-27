@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AdminDrawer extends StatelessWidget {
   const AdminDrawer({super.key});
@@ -81,6 +82,13 @@ class AdminDrawer extends StatelessWidget {
                           context.go('/admin/categorias');
                         },
                       ),
+                      _DrawerSubItem(
+                        title: 'Gestión de Pedidos',
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.push('/admin/pedidos');
+                        },
+                      ),
                     ],
                   ),
                   _DrawerItem(
@@ -105,12 +113,15 @@ class AdminDrawer extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(24),
               child: InkWell(
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(context);
-                  context.go('/');
+                  // Importar y usar AuthService para logout
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.clear();
+                  if (context.mounted) context.go('/');
                 },
-                child: Row(
-                  children: const [
+                child: const Row(
+                  children: [
                     Icon(Icons.logout, color: Colors.white),
                     SizedBox(width: 12),
                     Text(

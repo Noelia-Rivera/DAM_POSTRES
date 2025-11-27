@@ -43,6 +43,11 @@ import '../../features/repartidor/domain/usecases/gestionar_turno_usecase.dart';
 import '../../features/repartidor/data/repositories/repartidor_repository_impl.dart';
 import '../../features/repartidor/data/datasources/repartidor_remote_data_source_impl.dart';
 import '../../features/cliente/presentation/pages/cliente_home_screen.dart';
+import '../../features/cliente/presentation/pages/carrito_screen.dart';
+import '../../features/cliente/presentation/pages/crear_pedido_screen.dart';
+import '../../features/cliente/presentation/pages/mis_pedidos_screen.dart';
+import '../../features/cliente/presentation/pages/tracking_pedido_screen.dart';
+import '../../features/admin/presentation/pages/admin_pedidos_screen.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source_impl.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/usecases/login_usecase.dart';
@@ -104,6 +109,41 @@ final router = GoRouter(
         child: ClienteHomeScreen(),
         requiredRole: 'CLIENTE',
       ),
+    ),
+    GoRoute(
+      path: '/cliente/carrito',
+      builder: (context, state) => const AuthGuard(
+        child: CarritoScreen(),
+        requiredRole: 'CLIENTE',
+      ),
+    ),
+    GoRoute(
+      path: '/cliente/crear-pedido',
+      builder: (context, state) => const AuthGuard(
+        child: CrearPedidoScreen(),
+        requiredRole: 'CLIENTE',
+      ),
+    ),
+    GoRoute(
+      path: '/cliente/mis-pedidos',
+      builder: (context, state) => const AuthGuard(
+        child: MisPedidosScreen(),
+        requiredRole: 'CLIENTE',
+      ),
+    ),
+    GoRoute(
+      path: '/cliente/tracking/:pedidoId',
+      builder: (context, state) {
+        final pedidoId = state.pathParameters['pedidoId'] ?? '';
+        final direccion = state.extra as String? ?? '';
+        return AuthGuard(
+          requiredRole: 'CLIENTE',
+          child: TrackingPedidoScreen(
+            pedidoId: pedidoId,
+            direccionEntrega: direccion,
+          ),
+        );
+      },
     ),
     GoRoute(
       path: '/pedidos',
@@ -175,6 +215,7 @@ final router = GoRouter(
                   getProductosUseCase: GetProductosUseCase(productoRepository),
                   createProductoUseCase: CreateProductoUseCase(productoRepository),
                   updateProductoUseCase: UpdateProductoUseCase(productoRepository),
+                  productoRepository: productoRepository,
                 ),
               ),
               BlocProvider(
@@ -209,6 +250,7 @@ final router = GoRouter(
                   getProductosUseCase: GetProductosUseCase(productoRepository),
                   createProductoUseCase: CreateProductoUseCase(productoRepository),
                   updateProductoUseCase: UpdateProductoUseCase(productoRepository),
+                  productoRepository: productoRepository,
                 ),
               ),
               BlocProvider(
@@ -246,44 +288,25 @@ final router = GoRouter(
       },
     ),
     GoRoute(
+      path: '/admin/pedidos',
+      builder: (context, state) => const AuthGuard(
+        requiredRole: 'ADMIN',
+        child: AdminPedidosScreen(),
+      ),
+    ),
+    GoRoute(
       path: '/repartidor',
-      builder: (context, state) {
-        final repository = RepartidorRepositoryImpl(
-          remoteDataSource: RepartidorRemoteDataSourceImpl(apiClient: apiClient),
-        );
-        return AuthGuard(
-          requiredRole: 'REPARTIDOR',
-          child: BlocProvider(
-            create: (context) => RepartidorBloc(
-              getRepartidorInfoUseCase: GetRepartidorInfoUseCase(repository),
-              getPedidosAsignadosUseCase: GetPedidosAsignadosUseCase(repository),
-              actualizarEstadoPedidoUseCase: ActualizarEstadoPedidoUseCase(repository),
-              gestionarTurnoUseCase: GestionarTurnoUseCase(repository),
-            ),
-            child: const RepartidorHomeScreen(),
-          ),
-        );
-      },
+      builder: (context, state) => const AuthGuard(
+        requiredRole: 'REPARTIDOR',
+        child: RepartidorHomeScreen(),
+      ),
     ),
     GoRoute(
       path: '/repartidor/pedidos',
-      builder: (context, state) {
-        final repository = RepartidorRepositoryImpl(
-          remoteDataSource: RepartidorRemoteDataSourceImpl(apiClient: apiClient),
-        );
-        return AuthGuard(
-          requiredRole: 'REPARTIDOR',
-          child: BlocProvider(
-            create: (context) => RepartidorBloc(
-              getRepartidorInfoUseCase: GetRepartidorInfoUseCase(repository),
-              getPedidosAsignadosUseCase: GetPedidosAsignadosUseCase(repository),
-              actualizarEstadoPedidoUseCase: ActualizarEstadoPedidoUseCase(repository),
-              gestionarTurnoUseCase: GestionarTurnoUseCase(repository),
-            ),
-            child: const RepartidorPedidosScreen(),
-          ),
-        );
-      },
+      builder: (context, state) => const AuthGuard(
+        requiredRole: 'REPARTIDOR',
+        child: RepartidorPedidosScreen(),
+      ),
     ),
     GoRoute(
       path: '/repartidor/pedidos/detalle',
@@ -294,20 +317,9 @@ final router = GoRouter(
             body: Center(child: Text('Pedido no encontrado')),
           );
         }
-        final repository = RepartidorRepositoryImpl(
-          remoteDataSource: RepartidorRemoteDataSourceImpl(apiClient: apiClient),
-        );
         return AuthGuard(
           requiredRole: 'REPARTIDOR',
-          child: BlocProvider(
-            create: (context) => RepartidorBloc(
-              getRepartidorInfoUseCase: GetRepartidorInfoUseCase(repository),
-              getPedidosAsignadosUseCase: GetPedidosAsignadosUseCase(repository),
-              actualizarEstadoPedidoUseCase: ActualizarEstadoPedidoUseCase(repository),
-              gestionarTurnoUseCase: GestionarTurnoUseCase(repository),
-            ),
-            child: RepartidorPedidoDetalleScreen(pedido: pedido),
-          ),
+          child: RepartidorPedidoDetalleScreen(pedido: pedido),
         );
       },
     ),
