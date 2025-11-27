@@ -166,7 +166,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 16),
+                    
+                    // Botón temporal para testing
+                    TextButton(
+                      onPressed: () => context.go('/admin'),
+                      child: const Text(
+                        'Ir a Admin (Testing)',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
